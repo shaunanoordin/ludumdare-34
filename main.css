@@ -1,0 +1,28 @@
+:root {  /*Basic App Styles*/
+	font-family: "Lucida Console", monospace;
+	font-size: 10px;
+  color: #333;
+}
+* {
+	box-sizing: border-box;
+}
+body, html {
+	padding: 0;
+	margin: 0;
+}
+#app {  /*App Container*/
+	width: 100%;
+	padding: 2em;
+}
+#app canvas {  /*Primary App UI and Touch Input Element*/
+	display: block;
+	margin: 0 auto;
+	background: #fea;
+	touch-action: none;  /*Prevents IE/Edge from intrepreting touch input as scroll/pan commands.*/
+}
+#console,
+#notes {
+	max-width: 640px;
+	padding: 1em;
+	margin: 1em auto;
+}
