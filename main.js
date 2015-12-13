@@ -1,17 +1,33 @@
-/*
+/*  Ludum Dare 34 - Fat Penguin
+ *  A simple game about guiding penguins to an exit. Watch out
+ *  - Click/tap to drop a fish.
+ *  - Click/tap on a dropped fish to remove it.
+ *  - Penguins will swarm to the nearest fish.
+ *  - Ice is slippery and penguins can fall into the water. This is both tragic
+ *    and hilarious.
+ *  - Get the minimum number of penguins to the exit to win.
 ********************************************************************************
  */
 (function() {
   /*  Main Engine
-   *  Where the story starts.
   ****************************************************************
    */
   function App() {
     
-    //Engine Constants and Properties
+    //Engine Constants and Game Properties
     
     this.FRAMESPERSECOND = 30;
-    this.settings = { TEST: "Default" }
+    this.COLOUR_PENGUINSHADOW = "rgba(64,64,128,0.1)";
+    this.STATE_IDLE = "idle";
+    this.STATE_PLAY = "play";
+    
+    this.state = this.STATE_IDLE;
+    this.width = 640;
+    this.height = 480;
+    this.penguin = undefined;
+    this.fish = Array();
+    
+    //this.settings = { TEST: "Default" }
     //if (window.app_settings) {
     //this.settings = window.app_settings;
     //}
@@ -22,7 +38,7 @@
     
     this.htmlContainer = document.getElementById("app");
     if (!this.htmlContainer) { alert("ERROR"); }  //TODO
-    this.htmlContainer.innerHTML += "<canvas id=\"app-canvas\" width=\"640\" height=\"480\"></canvas>";
+    this.htmlContainer.innerHTML += "<canvas id=\"app-canvas\" width=\""+this.width+"\" height=\""+this.height+"\"></canvas>";
     this.htmlCanvas = document.getElementById("app-canvas");
     this.htmlCanvasContext = this.htmlCanvas.getContext("2d");
     this.htmlConsole = document.getElementById("console");
@@ -30,25 +46,36 @@
     this.htmlCanvasContext.lineJoin = "round";
 
     this.htmlConsole.innerHTML += "INIT";
-    this.htmlConsole.innerHTML += this.settings.TEST + "<br/>";
     
     //================================
     
     //Primary Run Cycle
     
     this.run = function () {
+      
+      //Step 1: Upkeep
+      //--------------------------------
+      if (this.state == this.STATE_IDLE) {  //TEST
+        this.state = this.STATE_PLAY;
+        this.initialiseLevel(0);
+      }
+      //--------------------------------
+      
+      //Step 2: Detect User Input
+      //--------------------------------
       if (this.inputPressed || this.inputTime > 0) {  //'If' condition created to detect very fast taps - i.e. touchstart and touchend in the same run() frame.
         this.inputTime ++;
         
         //Action: Touch Input => Drawing
         //----------------
-        if (this.inputTime > 0 && this.inputTime <= 10) {
+        /*if (this.inputTime > 0 && this.inputTime <= 10) {
           var circleRadius = 20;
           this.htmlCanvasContext.strokeStyle = "rgba(0,0,0,0.8)";
           this.htmlCanvasContext.lineWidth = 1;
           this.htmlCanvasContext.beginPath();
           this.htmlCanvasContext.arc(this.inputStartX - this.inputHTMLOffsets.x, this.inputStartY - this.inputHTMLOffsets.y, circleRadius, 0, 2 * Math.PI);
           this.htmlCanvasContext.stroke();
+          this.htmlCanvasContext.closePath();
         }
         
         circleRadius = 15;
@@ -56,6 +83,7 @@
         this.htmlCanvasContext.beginPath();
         this.htmlCanvasContext.arc(this.inputCurrentX - this.inputHTMLOffsets.x, this.inputCurrentY - this.inputHTMLOffsets.y, circleRadius, 0, 2 * Math.PI);
         this.htmlCanvasContext.fill();
+        this.htmlCanvasContext.closePath();*/
         //----------------
       }
       
@@ -63,27 +91,62 @@
         if (this.inputTime > 0) {
           //Action: Touch Input => Drawing
           //----------------
-          this.htmlCanvasContext.strokeStyle = "rgba(255,32,32,.4)";
+          /*this.htmlCanvasContext.strokeStyle = "rgba(255,32,32,.4)";
           this.htmlCanvasContext.lineWidth = 3;
           this.htmlCanvasContext.beginPath();
           this.htmlCanvasContext.moveTo(this.inputStartX - this.inputHTMLOffsets.x, this.inputStartY - this.inputHTMLOffsets.y);
           this.htmlCanvasContext.lineTo(this.inputCurrentX - this.inputHTMLOffsets.x, this.inputCurrentY - this.inputHTMLOffsets.y);
           this.htmlCanvasContext.stroke();
+          this.htmlCanvasContext.closePath();*/
           //----------------
         }
         this.inputTime = 0;
       }
+      //--------------------------------
       
+      //Step 3: Action and Physics
+      //--------------------------------
+      //--------------------------------
+
+      //DEBUG MODE
+      //----------------
       this.htmlConsole.innerHTML = "" +
         "X: " + this.inputStartX + " -> " + this.inputCurrentX + "<br/>" +
         "Y: " + this.inputStartY + " -> " + this.inputCurrentY + "<br/>" +
         this.inputTime + " frames<br/>" +
         (this.inputPressed ? "PRESSED!<br/>" : "---<br/>") + 
         "Window pageOffset: " + window.pageXOffset + "," + window.pageYOffset;
+      //----------------
+
+      
+      //Step 4: Render
+      //--------------------------------
+      this.htmlCanvasContext.clearRect(0, 0, this.width, this.height);
+      
+      if (this.penguin) {
+        this.htmlCanvasContext.fillStyle = this.COLOUR_PENGUINSHADOW;
+        this.htmlCanvasContext.beginPath();
+        this.htmlCanvasContext.arc(this.penguin.x, this.penguin.y, this.penguin.radius, 0, 2 * Math.PI);
+        this.htmlCanvasContext.fill();
+        this.htmlCanvasContext.closePath();
+        this.penguin.x += AppUtil.randomInt(-5, 5);
+        this.penguin.y += AppUtil.randomInt(-5, 5);
         
-        
+        this.htmlConsole.innerHTML = "Penguin: " + this.penguin.x + "," + this.penguin.y;
+      }
+      
+      //--------------------------------
+
     }.bind(this);
     this.runCycle = setInterval(this.run, 1000 / this.FRAMESPERSECOND);
+    
+    //================================
+    
+    //Level Controls
+    
+    this.initialiseLevel = function (level) {
+      this.penguin = new Penguin(this.width/2, this.height/2);
+    }.bind(this);
     
     //================================
     
@@ -95,8 +158,7 @@
     //  then fall back to interpreting mouse input as touch events -
     //  because this is how Edge 20 & Firefox 42 work on touch-enabled
     //  devices. (e.g. MS Surface Pro)
-    //- Touch input takes precedence over mouse input if possible; we do not
-    //  enable both to prevent input confusion.
+    //- Touch input takes precedence over mouse input if possible.
     //
     //Known states:
     //- inputPress == false && inputTime == 0: Idle state.
@@ -192,9 +254,28 @@
   /*
   ****************************************************************
    */
+   
+    /*  Entity Classes
+  ****************************************************************
+   */
+  var Penguin = function (x, y) {
+    this.x = x;
+    this.y = y;
+    this.weight = 1;
+    this.radius = 16;
+  }
+  
+  var Fish = function (x, y) {
+    this.x = x;
+    this.y = y;
+  }
+  /*
+  ****************************************************************
+   */
+
   
   /*  Utility Class
-   *  Static functions for your convenience.
+  ****************************************************************
    */
   var AppUtil = {
     randomInt: function (min, max) {
@@ -227,7 +308,7 @@
   /*
   ****************************************************************
    */
-  
+    
   /*  Initialisation
    *  Go go!
   ****************************************************************
