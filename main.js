@@ -18,8 +18,12 @@
     
     this.FRAMESPERSECOND = 30;
     this.COLOUR_PENGUINSHADOW = "rgba(64,64,128,0.1)";
+    this.COLOUR_FISHSHADOW = "rgba(64,128,64,0.1)";
+    this.FISH_RADIUS = 32;
+    this.PENGUIN_MAX_SPEED = 2;
     this.STATE_IDLE = "idle";
     this.STATE_PLAY = "play";
+    this.DEFAULT_DECELERATION = 1;
     
     this.state = this.STATE_IDLE;
     this.width = 640;
@@ -66,38 +70,38 @@
       if (this.inputPressed || this.inputTime > 0) {  //'If' condition created to detect very fast taps - i.e. touchstart and touchend in the same run() frame.
         this.inputTime ++;
         
-        //Action: Touch Input => Drawing
+        //Action: Touch Started/Ongoing => Nothing to do here.
         //----------------
-        /*if (this.inputTime > 0 && this.inputTime <= 10) {
-          var circleRadius = 20;
-          this.htmlCanvasContext.strokeStyle = "rgba(0,0,0,0.8)";
-          this.htmlCanvasContext.lineWidth = 1;
-          this.htmlCanvasContext.beginPath();
-          this.htmlCanvasContext.arc(this.inputStartX - this.inputHTMLOffsets.x, this.inputStartY - this.inputHTMLOffsets.y, circleRadius, 0, 2 * Math.PI);
-          this.htmlCanvasContext.stroke();
-          this.htmlCanvasContext.closePath();
-        }
-        
-        circleRadius = 15;
-        this.htmlCanvasContext.fillStyle = "rgba(0,128,255,0.1)";
-        this.htmlCanvasContext.beginPath();
-        this.htmlCanvasContext.arc(this.inputCurrentX - this.inputHTMLOffsets.x, this.inputCurrentY - this.inputHTMLOffsets.y, circleRadius, 0, 2 * Math.PI);
-        this.htmlCanvasContext.fill();
-        this.htmlCanvasContext.closePath();*/
         //----------------
       }
       
       if (!this.inputPressed) {  //Second 'If' condition created to detect very fast taps.
         if (this.inputTime > 0) {
-          //Action: Touch Input => Drawing
+          
+          //Action: Touch Input Ended/Mouse Up => Drop a Fish (or cancel a fish)
           //----------------
-          /*this.htmlCanvasContext.strokeStyle = "rgba(255,32,32,.4)";
-          this.htmlCanvasContext.lineWidth = 3;
-          this.htmlCanvasContext.beginPath();
-          this.htmlCanvasContext.moveTo(this.inputStartX - this.inputHTMLOffsets.x, this.inputStartY - this.inputHTMLOffsets.y);
-          this.htmlCanvasContext.lineTo(this.inputCurrentX - this.inputHTMLOffsets.x, this.inputCurrentY - this.inputHTMLOffsets.y);
-          this.htmlCanvasContext.stroke();
-          this.htmlCanvasContext.closePath();*/
+          var inputX = this.inputCurrentX - this.inputHTMLOffsets.x;
+          var inputY = this.inputCurrentY - this.inputHTMLOffsets.y;
+          var insertNewFish = true;
+          
+          //Was the input in the vicinity of an existing fish? If so, remove that fish instead of inserting a new one.
+          for (var i = 0; i < this.fish.length; i ++) {
+            var distXSquared = this.fish[i].x - inputX;
+            distXSquared = distXSquared * distXSquared;
+            var distYSquared = this.fish[i].y - inputY;
+            distYSquared = distYSquared * distYSquared;
+            
+            if (distXSquared + distYSquared <= this.FISH_RADIUS * this.FISH_RADIUS) {
+              this.fish.splice(i, 1);
+              insertNewFish = false;
+              break;
+            }
+          }
+          
+          if (insertNewFish) {
+            var newFish = new Fish(inputX, inputY);
+            this.fish.push(newFish);
+          }
           //----------------
         }
         this.inputTime = 0;
@@ -106,6 +110,34 @@
       
       //Step 3: Action and Physics
       //--------------------------------
+      if (this.penguin) {
+        if (this.fish.length >= 1) {
+          var distX = this.fish[0].x - this.penguin.x;
+          var distY = this.fish[0].y - this.penguin.y;
+          this.penguin.angle = Math.atan2(distY, distX);
+          
+          if (distX * distX + distY * distY <= this.penguin.radius * this.penguin.radius) {  //Eat the fish!
+            this.fish.shift();  //Or, this.fish = this.fish.splice(0, 1);
+            this.penguin.accelerationX = 0;
+            this.penguin.accelerationY = 0;
+          }
+          else {
+            this.penguin.accelerationX = Math.cos(this.penguin.angle) * this.penguin.speedRating;
+            this.penguin.accelerationY = Math.sin(this.penguin.angle) * this.penguin.speedRating;
+          } 
+        }
+        else {  //No fish, so stop.
+          this.penguin.accelerationX = 0;
+          this.penguin.accelerationY = 0;
+        }
+        
+        this.penguin.velocityX = this.penguin.accelerationX;
+        this.penguin.velocityY = this.penguin.accelerationY;
+        
+                
+        this.penguin.x += this.penguin.velocityX;
+        this.penguin.y += this.penguin.velocityY;
+      }
       //--------------------------------
 
       //DEBUG MODE
@@ -129,10 +161,16 @@
         this.htmlCanvasContext.arc(this.penguin.x, this.penguin.y, this.penguin.radius, 0, 2 * Math.PI);
         this.htmlCanvasContext.fill();
         this.htmlCanvasContext.closePath();
-        this.penguin.x += AppUtil.randomInt(-5, 5);
-        this.penguin.y += AppUtil.randomInt(-5, 5);
-        
-        this.htmlConsole.innerHTML = "Penguin: " + this.penguin.x + "," + this.penguin.y;
+      }
+      
+      if (this.fish) {
+        for (var i = 0; i < this.fish.length; i ++) {
+          this.htmlCanvasContext.fillStyle = this.COLOUR_FISHSHADOW;
+          this.htmlCanvasContext.beginPath();
+          this.htmlCanvasContext.arc(this.fish[i].x, this.fish[i].y, this.FISH_RADIUS, 0, 2 * Math.PI);
+          this.htmlCanvasContext.fill();
+          this.htmlCanvasContext.closePath();  
+        }
       }
       
       //--------------------------------
@@ -261,8 +299,14 @@
   var Penguin = function (x, y) {
     this.x = x;
     this.y = y;
+    this.angle = 0;
+    this.speedRating = 1;
+    this.accelerationX = 0;
+    this.accelerationY = 0;
+    this.velocityX = 0;
+    this.velocityY = 0;
     this.weight = 1;
-    this.radius = 16;
+    this.radius = 32;
   }
   
   var Fish = function (x, y) {
