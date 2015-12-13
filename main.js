@@ -20,10 +20,10 @@
     this.COLOUR_PENGUINSHADOW = "rgba(64,64,128,0.1)";
     this.COLOUR_FISHSHADOW = "rgba(64,128,64,0.1)";
     this.FISH_RADIUS = 32;
-    this.PENGUIN_MAX_SPEED = 2;
+    this.PENGUIN_MAX_SPEED = 16;
     this.STATE_IDLE = "idle";
     this.STATE_PLAY = "play";
-    this.DEFAULT_DECELERATION = 1;
+    this.DEFAULT_DECELERATION = 0.4;
     
     this.state = this.STATE_IDLE;
     this.width = 640;
@@ -100,7 +100,7 @@
           
           if (insertNewFish) {
             var newFish = new Fish(inputX, inputY);
-            this.fish.push(newFish);
+            this.fish.unshift(newFish);
           }
           //----------------
         }
@@ -110,7 +110,10 @@
       
       //Step 3: Action and Physics
       //--------------------------------
-      if (this.penguin) {
+      if (this.penguin) {  //This only works if there's a penguin.
+      
+        //Fish? Chase the most recent fish.
+        //----------------
         if (this.fish.length >= 1) {
           var distX = this.fish[0].x - this.penguin.x;
           var distY = this.fish[0].y - this.penguin.y;
@@ -130,13 +133,43 @@
           this.penguin.accelerationX = 0;
           this.penguin.accelerationY = 0;
         }
+        //----------------
         
-        this.penguin.velocityX = this.penguin.accelerationX;
-        this.penguin.velocityY = this.penguin.accelerationY;
+        //Apply the acceleration and cap speed.
+        //----------------
+        this.penguin.velocityX += this.penguin.accelerationX;
+        this.penguin.velocityY += this.penguin.accelerationY;
+        var velocityAngle = Math.atan2(this.penguin.velocityY, this.penguin.velocityX);
+        var maxVelocityX = this.PENGUIN_MAX_SPEED * Math.cos(velocityAngle);
+        var maxVelocityY = this.PENGUIN_MAX_SPEED * Math.sin(velocityAngle);
+        this.penguin.velocityX = (this.penguin.velocityX >= 0)
+          ? Math.min(this.penguin.velocityX, maxVelocityX)
+          : Math.max(this.penguin.velocityX, maxVelocityX);
+        this.penguin.velocityY = (this.penguin.velocityY >= 0)
+          ? Math.min(this.penguin.velocityY, maxVelocityY)
+          : Math.max(this.penguin.velocityY, maxVelocityY);
+        //----------------
         
-                
+        //Tile effects
+        //----------------
+        if (true) {  //TEST
+          var deceleration = this.DEFAULT_DECELERATION;
+          var decelerationX = deceleration * Math.cos(velocityAngle);
+          var decelerationY = deceleration * Math.sin(velocityAngle);
+          this.penguin.velocityX = (this.penguin.velocityX >= 0)
+            ? Math.max(this.penguin.velocityX - decelerationX, 0)
+            : Math.min(this.penguin.velocityX - decelerationX, 0);
+          this.penguin.velocityY = (this.penguin.velocityY >= 0)
+            ? Math.max(this.penguin.velocityY - decelerationY, 0)
+            : Math.min(this.penguin.velocityY - decelerationY, 0);
+        }
+        //----------------
+        
+        //General physics
+        //----------------
         this.penguin.x += this.penguin.velocityX;
         this.penguin.y += this.penguin.velocityY;
+        //----------------
       }
       //--------------------------------
 
