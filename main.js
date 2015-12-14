@@ -26,12 +26,13 @@
     App.COLOUR_TILE_CAMERA_DONE = "rgba(192,255,192,1)";
     App.FISH_RADIUS = 16;
     App.PENGUIN_MAXSPEED = 8;
-    App.STATE_IDLE = "idle";
+    App.STATE_START = "idle";
     App.STATE_PLAY = "play";
+    App.STATE_VICTORY = "victory";
     App.STATE_DEFEAT = "defeat";
     App.DEFAULT_DECELERATION = 0.2;
     
-    this.state = App.STATE_IDLE;
+    this.state = App.STATE_START;
     this.width = 640;
     this.height = 480;
     this.penguin = undefined;
@@ -43,20 +44,20 @@
       new Map(
         20, 15,
         "                    " +
-        " ###0001111111  122 " +
-        " ###000011111111X11 " +
-        " #S#000011111111111 " +
-        " ###   11111   1111 " +
-        "  9             11  " +
-        "  9             1   " +
-        "  9             1   " +
-        "  9            111  " +
-        "  9             1   " +
-        "  9             1   " +
-        "  9333333333333313  " +
-        " 9X9333333333333X3  " +
-        "  9            11   " +
-        "                    "
+        "     9999999999     " +
+        "   99999999999999   " +
+        "  9999999999999999  " +
+        "  99S9999999999X99  " +
+        " 999999999999999999 " +
+        " 9999999999999999999" +
+        " 9999999999999999999" +
+        " 9999999999999999999" +
+        " 9999999999999999999" +
+        "  99X9999999999X99  " +
+        "  9999999999999999  " +
+        "   99999999999999   " +
+        "     9999999999     " +
+        "          99999     "
       ),
       new Map(
         20, 15,
@@ -74,24 +75,6 @@
         "                    " +
         "                    " +
         "                    " +
-        "                    "
-      ),
-      new Map(
-        20, 15,
-        "            # # #   " +
-        " ###0001111111 #122 " +
-        " ###000011111111X11 " +
-        " #S#000011111111111 " +
-        " ###   11111   1111 " +
-        "  9             11  " +
-        "  9             1   " +
-        "  9             1   " +
-        "  9            111  " +
-        "  9             1   " +
-        "  9             1   " +
-        "  9333333333333313  " +
-        " 9X9333333333333X3  " +
-        "  9            11   " +
         "                    "
       )
     ];
@@ -122,7 +105,7 @@
     
     this.run = function () {
       switch(this.state) {
-        case App.STATE_IDLE:
+        case App.STATE_START:
           this.htmlCanvasContext.clearRect(0, 0, this.width, this.height);
           this.state = App.STATE_PLAY;
           this.initialiseMap(this.currentMapIndex);
@@ -130,8 +113,15 @@
         case App.STATE_PLAY:
           this.run_play();
           break;
+        case App.STATE_VICTORY:
+          this.htmlCanvasContext.clearRect(0, 0, this.width, this.height);
+          this.htmlCanvasContext.fillStyle = "rgba(128,255,192,1)";  //TEST
+          this.htmlCanvasContext.fillRect(0, 0, this.width, this.height);
+          break;
         case App.STATE_DEFEAT:
           this.htmlCanvasContext.clearRect(0, 0, this.width, this.height);
+          this.htmlCanvasContext.fillStyle = "rgba(255,128,128,1)";  //TEST
+          this.htmlCanvasContext.fillRect(0, 0, this.width, this.height);
           break;
         default:
           break;
@@ -143,17 +133,35 @@
       //Step 1: Upkeep
       //--------------------------------
       if (this.penguin && this.map) {
+        
+        //What kind of tile is the penguin stepping on?
+        //----------------
+        this.htmlConsole.innerHTML = this.map.totalCameras + " vs " + this.map.totalCamerasDone;
+        
         var tileX = Math.floor(this.penguin.x / Map.TILESIZE);
         var tileY = Math.floor(this.penguin.y / Map.TILESIZE);
-        if (tileX < this.map.width && tileY < this.map.height) {
-          if (this.map.tiles[tileY][tileX] == Map.TILE_WATER) {
+        if (tileX >= 0 && tileX < this.map.width && tileY > 0 && tileY < this.map.height) {
+          if (this.map.tiles[tileY][tileX] == Map.TILE_WATER) {  //Water? SPLASH! You're defeated.
             this.state = App.STATE_DEFEAT;
+            return;
           }
-          else if (this.map.tiles[tileY][tileX] > Map.TILE_WATER) {
+          else if (this.map.tiles[tileY][tileX] > Map.TILE_WATER) {  //Ice? Slide along, but beware that the penguin's weight will slowly crack the ice.
             this.map.tiles[tileY][tileX] -= this.penguin.weight;
+          } else if (this.map.tiles[tileY][tileX] == Map.TILE_CAMERA) {  //Ice? Slide along, but beware that the penguin's weight will slowly crack the ice.
+            this.map.tiles[tileY][tileX] = Map.TILE_CAMERA_DONE;
+            this.map.totalCamerasDone ++;
+            if (this.map.totalCamerasDone >= this.map.totalCameras) {
+              this.state = App.STATE_VICTORY;
+              return;
+            }
           }
         }
-        this.htmlConsole.innerHTML = tileX + "," + tileY;
+        
+        if (this.penguin.x < 0 || this.penguin.x > this.width || this.penguin.y < 0 || this.penguin.y > this.height) {  //Alternative defeat method: going offscreen.
+          this.state = App.STATE_DEFEAT;
+          return;
+        }
+        //----------------
       }
       //--------------------------------
       
@@ -192,7 +200,8 @@
           
           if (insertNewFish) {
             var newFish = new Fish(inputX, inputY);
-            this.fish.unshift(newFish);
+            //this.fish.unshift(newFish);
+            this.fish.push(newFish);
           }
           //----------------
         }
@@ -211,8 +220,9 @@
           var distY = this.fish[0].y - this.penguin.y;
           this.penguin.angle = Math.atan2(distY, distX);
           
-          if (distX * distX + distY * distY <= this.penguin.radius * this.penguin.radius) {  //Eat the fish!
+          if (distX * distX + distY * distY <= this.penguin.radius * this.penguin.radius) {  //Touched the fish? Eat the fish!
             this.fish.shift();  //Or, this.fish = this.fish.splice(0, 1);
+            this.penguin.weight += Fish.WEIGHT_GAIN;
             this.penguin.accelerationX = 0;
             this.penguin.accelerationY = 0;
           }
@@ -245,7 +255,7 @@
         //Tile effects
         //----------------
         if (true) {  //TEST
-          var deceleration = App.DEFAULT_DECELERATION;
+          var deceleration = App.DEFAULT_DECELERATION;  //In the future, we may set different deceleration rates based on the tile the penguin is stepping on.
           var decelerationX = deceleration * Math.cos(velocityAngle);
           var decelerationY = deceleration * Math.sin(velocityAngle);
           this.penguin.velocityX = (this.penguin.velocityX >= 0)
@@ -307,7 +317,7 @@
       if (this.penguin) {
         this.htmlCanvasContext.fillStyle = App.COLOUR_PENGUINSHADOW;
         this.htmlCanvasContext.beginPath();
-        this.htmlCanvasContext.arc(this.penguin.x, this.penguin.y, this.penguin.radius, 0, 2 * Math.PI);
+        this.htmlCanvasContext.arc(this.penguin.x, this.penguin.y, this.penguin.radius + this.penguin.weight, 0, 2 * Math.PI);
         this.htmlCanvasContext.fill();
         this.htmlCanvasContext.closePath();
       }
