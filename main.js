@@ -8,6 +8,8 @@
  *  - Get the minimum number of penguins to the exit to win.
 ********************************************************************************
  */
+"use strict";
+
 (function() {
   /*  Main Engine
   ****************************************************************
@@ -16,20 +18,82 @@
     
     //Engine Constants and Game Properties
     
-    this.FRAMESPERSECOND = 30;
-    this.COLOUR_PENGUINSHADOW = "rgba(64,64,128,0.1)";
-    this.COLOUR_FISHSHADOW = "rgba(64,128,64,0.1)";
-    this.FISH_RADIUS = 32;
-    this.PENGUIN_MAX_SPEED = 16;
-    this.STATE_IDLE = "idle";
-    this.STATE_PLAY = "play";
-    this.DEFAULT_DECELERATION = 0.4;
+    App.FRAMESPERSECOND = 30;
+    App.COLOUR_PENGUINSHADOW = "rgba(64,64,128,0.1)";
+    App.COLOUR_FISHSHADOW = "rgba(64,128,64,0.1)";
+    App.COLOUR_TILE_SNOW = "rgba(224,240,255,1)";
+    App.COLOUR_TILE_CAMERA = "rgba(128,192,128,1)";
+    App.COLOUR_TILE_CAMERA_DONE = "rgba(192,255,192,1)";
+    App.FISH_RADIUS = 16;
+    App.PENGUIN_MAX_SPEED = 16;
+    App.STATE_IDLE = "idle";
+    App.STATE_PLAY = "play";
+    App.DEFAULT_DECELERATION = 0.4;
     
-    this.state = this.STATE_IDLE;
+    this.state = App.STATE_IDLE;
     this.width = 640;
     this.height = 480;
     this.penguin = undefined;
-    this.fish = Array();
+    this.fish = new Array();
+    
+    this.map = undefined;
+    this.currentMapIndex = 0;
+    this.maps = [
+      new Map(
+        20, 15,
+        "                    " +
+        " ###0001111111  122 " +
+        " ###000011111111X11 " +
+        " #S#000011111111111 " +
+        " ###   11111   1111 " +
+        "  9             11  " +
+        "  9             1   " +
+        "  9             1   " +
+        "  9            111  " +
+        "  9             1   " +
+        "  9             1   " +
+        "  9333333333333313  " +
+        " 9X9333333333333X3  " +
+        "  9            11   " +
+        "                    "
+      ),
+      new Map(
+        20, 15,
+        "                    " +
+        " S                  " +
+        "                    " +
+        "                    " +
+        "                    " +
+        "                    " +
+        "                    " +
+        "                    " +
+        "                    " +
+        "                    " +
+        "                    " +
+        "                    " +
+        "                    " +
+        "                    " +
+        "                    "
+      ),
+      new Map(
+        20, 15,
+        "            # # #   " +
+        " ###0001111111 #122 " +
+        " ###000011111111X11 " +
+        " #S#000011111111111 " +
+        " ###   11111   1111 " +
+        "  9             11  " +
+        "  9             1   " +
+        "  9             1   " +
+        "  9            111  " +
+        "  9             1   " +
+        "  9             1   " +
+        "  9333333333333313  " +
+        " 9X9333333333333X3  " +
+        "  9            11   " +
+        "                    "
+      )
+    ];
     
     //this.settings = { TEST: "Default" }
     //if (window.app_settings) {
@@ -59,9 +123,9 @@
       
       //Step 1: Upkeep
       //--------------------------------
-      if (this.state == this.STATE_IDLE) {  //TEST
-        this.state = this.STATE_PLAY;
-        this.initialiseLevel(0);
+      if (this.state == App.STATE_IDLE) {  //TEST
+        this.state = App.STATE_PLAY;
+        this.initialiseMap(this.currentMapIndex);
       }
       //--------------------------------
       
@@ -91,7 +155,7 @@
             var distYSquared = this.fish[i].y - inputY;
             distYSquared = distYSquared * distYSquared;
             
-            if (distXSquared + distYSquared <= this.FISH_RADIUS * this.FISH_RADIUS) {
+            if (distXSquared + distYSquared <= App.FISH_RADIUS * App.FISH_RADIUS) {
               this.fish.splice(i, 1);
               insertNewFish = false;
               break;
@@ -140,8 +204,8 @@
         this.penguin.velocityX += this.penguin.accelerationX;
         this.penguin.velocityY += this.penguin.accelerationY;
         var velocityAngle = Math.atan2(this.penguin.velocityY, this.penguin.velocityX);
-        var maxVelocityX = this.PENGUIN_MAX_SPEED * Math.cos(velocityAngle);
-        var maxVelocityY = this.PENGUIN_MAX_SPEED * Math.sin(velocityAngle);
+        var maxVelocityX = App.PENGUIN_MAX_SPEED * Math.cos(velocityAngle);
+        var maxVelocityY = App.PENGUIN_MAX_SPEED * Math.sin(velocityAngle);
         this.penguin.velocityX = (this.penguin.velocityX >= 0)
           ? Math.min(this.penguin.velocityX, maxVelocityX)
           : Math.max(this.penguin.velocityX, maxVelocityX);
@@ -153,7 +217,7 @@
         //Tile effects
         //----------------
         if (true) {  //TEST
-          var deceleration = this.DEFAULT_DECELERATION;
+          var deceleration = App.DEFAULT_DECELERATION;
           var decelerationX = deceleration * Math.cos(velocityAngle);
           var decelerationY = deceleration * Math.sin(velocityAngle);
           this.penguin.velocityX = (this.penguin.velocityX >= 0)
@@ -175,21 +239,54 @@
 
       //DEBUG MODE
       //----------------
-      this.htmlConsole.innerHTML = "" +
+      /*this.htmlConsole.innerHTML = "" +
         "X: " + this.inputStartX + " -> " + this.inputCurrentX + "<br/>" +
         "Y: " + this.inputStartY + " -> " + this.inputCurrentY + "<br/>" +
         this.inputTime + " frames<br/>" +
         (this.inputPressed ? "PRESSED!<br/>" : "---<br/>") + 
-        "Window pageOffset: " + window.pageXOffset + "," + window.pageYOffset;
+        "Window pageOffset: " + window.pageXOffset + "," + window.pageYOffset;*/
       //----------------
-
       
       //Step 4: Render
+      //Note the order of rendering, bottom up: map first, then shadows, then any further sprites.
       //--------------------------------
       this.htmlCanvasContext.clearRect(0, 0, this.width, this.height);
       
+      if (this.map) {
+        var DEBUG = "";
+        
+        for (var y = 0; y < this.map.height; y ++) {
+          for (var x = 0; x < this.map.width; x ++) {
+            var tile = this.map.tiles[y][x];
+            
+            DEBUG += tile + " ";
+            
+            if (tile != Map.TILE_WATER) {
+              if (tile > Map.TILE_WATER) {
+                var tileStrength = Math.min(Map.MAXIMUMTILESTRENGTH, Math.max(0, tile));
+                this.htmlCanvasContext.fillStyle = "rgba(255,255,255,"+(0.5 + tileStrength / Map.MAXIMUMTILESTRENGTH / 2)+")";
+              }
+              else if (tile == Map.TILE_START || tile == Map.TILE_SNOW) {
+                this.htmlCanvasContext.fillStyle = App.COLOUR_TILE_SNOW;
+              }
+              else if (tile == Map.TILE_CAMERA) {
+                this.htmlCanvasContext.fillStyle = App.COLOUR_TILE_CAMERA;
+              }
+              else if (tile == Map.TILE_CAMERA_DONE) {
+                this.htmlCanvasContext.fillStyle = App.COLOUR_TILE_CAMERA_DINE;
+              }
+              this.htmlCanvasContext.fillRect(x * Map.TILESIZE, y * Map.TILESIZE, Map.TILESIZE - 1, Map.TILESIZE - 1);
+            }
+          }
+          
+          DEBUG += "\n";
+        }
+        
+        //this.htmlConsole.innerHTML = DEBUG;
+      }
+      
       if (this.penguin) {
-        this.htmlCanvasContext.fillStyle = this.COLOUR_PENGUINSHADOW;
+        this.htmlCanvasContext.fillStyle = App.COLOUR_PENGUINSHADOW;
         this.htmlCanvasContext.beginPath();
         this.htmlCanvasContext.arc(this.penguin.x, this.penguin.y, this.penguin.radius, 0, 2 * Math.PI);
         this.htmlCanvasContext.fill();
@@ -198,25 +295,43 @@
       
       if (this.fish) {
         for (var i = 0; i < this.fish.length; i ++) {
-          this.htmlCanvasContext.fillStyle = this.COLOUR_FISHSHADOW;
+          this.htmlCanvasContext.fillStyle = App.COLOUR_FISHSHADOW;
           this.htmlCanvasContext.beginPath();
-          this.htmlCanvasContext.arc(this.fish[i].x, this.fish[i].y, this.FISH_RADIUS, 0, 2 * Math.PI);
+          this.htmlCanvasContext.arc(this.fish[i].x, this.fish[i].y, App.FISH_RADIUS, 0, 2 * Math.PI);
           this.htmlCanvasContext.fill();
           this.htmlCanvasContext.closePath();  
         }
       }
-      
       //--------------------------------
 
     }.bind(this);
-    this.runCycle = setInterval(this.run, 1000 / this.FRAMESPERSECOND);
+    
+    this.runCycle = setInterval(this.run, 1000 / App.FRAMESPERSECOND);
     
     //================================
     
-    //Level Controls
+    //Level/Map Controls
     
-    this.initialiseLevel = function (level) {
-      this.penguin = new Penguin(this.width/2, this.height/2);
+    this.initialiseMap = function (mapIndex) {
+      if (mapIndex >= 0 && mapIndex < this.maps.length)
+      this.map = new Map(
+        this.maps[mapIndex].width,
+        this.maps[mapIndex].height,
+        this.maps[mapIndex].rawData
+      );
+      console.log(this.map);
+      this.penguin = new Penguin(this.map.startingX, this.map.startingY);
+      
+      /*var tmp = this.map;
+      var tmpTiles = "";
+      for (var y = 0; y < tmp.tiles.length; y ++) {
+        
+        for (var y = 0; y < tmp.tiles.length; y ++) {
+          
+        tmpTiles = 
+      }
+      console.log("Size: " + tmp.width + "x" + tmp.height + "\n");*/
+      
     }.bind(this);
     
     //================================
@@ -329,7 +444,7 @@
     /*  Entity Classes
   ****************************************************************
    */
-  var Penguin = function (x, y) {
+  function Penguin(x, y) {
     this.x = x;
     this.y = y;
     this.angle = 0;
@@ -339,12 +454,63 @@
     this.velocityX = 0;
     this.velocityY = 0;
     this.weight = 1;
-    this.radius = 32;
+    this.radius = 16;
   }
   
-  var Fish = function (x, y) {
+  function Fish(x, y) {
+    Fish.WEIGHT_GAIN = 1;
     this.x = x;
     this.y = y;
+  }
+  
+  function Map(width, height, rawData) {
+    Map.TILE_WATER = 0;
+    Map.TILE_START = -1;
+    Map.TILE_SNOW = -2;
+    Map.TILE_CAMERA = -3;
+    Map.TILE_CAMERA_DONE = -4;
+    Map.TILESTRENGTHFACTOR = 10;
+    Map.MAXIMUMTILESTRENGTH = 10 * Map.TILESTRENGTHFACTOR;
+    Map.TILESIZE = 32;
+
+    this.rawData = rawData;    
+    this.width = width;
+    this.height = height;
+    this.tiles = new Array(this.height);
+    this.totalCameras = 0;
+    this.totalCamerasDone = 0;
+    this.startingX = (this.width + Map.TILESIZE) / 2;
+    this.startingY = (this.height + Map.TILESIZE) / 2;
+    
+    for (var row = 0; row < this.height; row ++) {
+      this.tiles[row] = new Array(this.width);
+      for (var col = 0; col < this.width; col ++) {
+        var index = row * this.width + col;
+        if (index < rawData.length) {
+          if (/[0-9]/.test(rawData[index])) {
+            this.tiles[row][col] = (parseInt(rawData[index]) + 1) * Map.TILESTRENGTHFACTOR;
+          }
+          else if (rawData[index] == "X" || rawData[index] == "x") {
+            this.tiles[row][col] = Map.TILE_CAMERA;
+            this.totalCameras ++;
+          }
+          else if (rawData[index] == "S") {
+            this.tiles[row][col] = Map.TILE_START;
+            this.startingX = col * Map.TILESIZE + Map.TILESIZE / 2;
+            this.startingY = row * Map.TILESIZE + Map.TILESIZE / 2;
+          }
+          else if (rawData[index] == "#") {
+            this.tiles[row][col] = Map.TILE_SNOW;
+          }
+          else {
+            this.tiles[row][col] = Map.TILE_WATER;
+          }
+        }
+        else {
+          this.tiles[row][col] = Map.TILE_WATER;
+        }
+      }
+    }
   }
   /*
   ****************************************************************

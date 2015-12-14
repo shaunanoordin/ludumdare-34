@@ -17,11 +17,12 @@ body, html {
 #app canvas {  /*Primary App UI and Touch Input Element*/
 	display: block;
 	margin: 0 auto;
-	background: #cef;
+	background: #369;
 	touch-action: none;  /*Prevents IE/Edge from intrepreting touch input as scroll/pan commands.*/
 }
 #console,
 #notes {
+  white-space: pre;
 	max-width: 640px;
 	padding: 1em;
 	margin: 1em auto;
