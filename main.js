@@ -1,11 +1,14 @@
 /*  Ludum Dare 34 - Fat Penguin
- *  A simple game about guiding penguins to an exit. Watch out
+ *  A simple game about guiding a penguin to several markers by luring it with
+ *  fish.
  *  - Click/tap to drop a fish.
  *  - Click/tap on a dropped fish to remove it.
- *  - Penguins will swarm to the nearest fish.
+ *  - The penguin will move towards the fish.
  *  - Ice is slippery and penguins can fall into the water. This is both tragic
  *    and hilarious.
- *  - Get the minimum number of penguins to the exit to win.
+ *  - The more fish the penguin eats, the fatter it gets. The fatter the penguin
+ *    gets, the faster the ice beneath it cracks.
+ *  - Get the penguins to each marker to complete the level.
 ********************************************************************************
  */
 "use strict";
@@ -97,7 +100,7 @@
     this.htmlCanvasContext.lineCap = "round";
     this.htmlCanvasContext.lineJoin = "round";
 
-    this.htmlConsole.innerHTML += "INIT";
+    //this.htmlConsole.innerHTML += "INIT";
     
     //================================
     
@@ -136,8 +139,6 @@
         
         //What kind of tile is the penguin stepping on?
         //----------------
-        this.htmlConsole.innerHTML = this.map.totalCameras + " vs " + this.map.totalCamerasDone;
-        
         var tileX = Math.floor(this.penguin.x / Map.TILESIZE);
         var tileY = Math.floor(this.penguin.y / Map.TILESIZE);
         if (tileX >= 0 && tileX < this.map.width && tileY > 0 && tileY < this.map.height) {
@@ -146,7 +147,7 @@
             return;
           }
           else if (this.map.tiles[tileY][tileX] > Map.TILE_WATER) {  //Ice? Slide along, but beware that the penguin's weight will slowly crack the ice.
-            this.map.tiles[tileY][tileX] -= this.penguin.weight;
+            this.map.tiles[tileY][tileX] -= Math.max(this.penguin.weight, 0);
           } else if (this.map.tiles[tileY][tileX] == Map.TILE_CAMERA) {  //Ice? Slide along, but beware that the penguin's weight will slowly crack the ice.
             this.map.tiles[tileY][tileX] = Map.TILE_CAMERA_DONE;
             this.map.totalCamerasDone ++;
