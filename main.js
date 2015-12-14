@@ -25,10 +25,11 @@
     App.COLOUR_TILE_CAMERA = "rgba(128,192,128,1)";
     App.COLOUR_TILE_CAMERA_DONE = "rgba(192,255,192,1)";
     App.FISH_RADIUS = 16;
-    App.PENGUIN_MAX_SPEED = 16;
+    App.PENGUIN_MAXSPEED = 8;
     App.STATE_IDLE = "idle";
     App.STATE_PLAY = "play";
-    App.DEFAULT_DECELERATION = 0.4;
+    App.STATE_DEFEAT = "defeat";
+    App.DEFAULT_DECELERATION = 0.2;
     
     this.state = App.STATE_IDLE;
     this.width = 640;
@@ -120,12 +121,39 @@
     //Primary Run Cycle
     
     this.run = function () {
+      switch(this.state) {
+        case App.STATE_IDLE:
+          this.htmlCanvasContext.clearRect(0, 0, this.width, this.height);
+          this.state = App.STATE_PLAY;
+          this.initialiseMap(this.currentMapIndex);
+          break;
+        case App.STATE_PLAY:
+          this.run_play();
+          break;
+        case App.STATE_DEFEAT:
+          this.htmlCanvasContext.clearRect(0, 0, this.width, this.height);
+          break;
+        default:
+          break;
+      }
+    }.bind(this);
+    
+    this.run_play = function () {
       
       //Step 1: Upkeep
       //--------------------------------
-      if (this.state == App.STATE_IDLE) {  //TEST
-        this.state = App.STATE_PLAY;
-        this.initialiseMap(this.currentMapIndex);
+      if (this.penguin && this.map) {
+        var tileX = Math.floor(this.penguin.x / Map.TILESIZE);
+        var tileY = Math.floor(this.penguin.y / Map.TILESIZE);
+        if (tileX < this.map.width && tileY < this.map.height) {
+          if (this.map.tiles[tileY][tileX] == Map.TILE_WATER) {
+            this.state = App.STATE_DEFEAT;
+          }
+          else if (this.map.tiles[tileY][tileX] > Map.TILE_WATER) {
+            this.map.tiles[tileY][tileX] -= this.penguin.weight;
+          }
+        }
+        this.htmlConsole.innerHTML = tileX + "," + tileY;
       }
       //--------------------------------
       
@@ -204,8 +232,8 @@
         this.penguin.velocityX += this.penguin.accelerationX;
         this.penguin.velocityY += this.penguin.accelerationY;
         var velocityAngle = Math.atan2(this.penguin.velocityY, this.penguin.velocityX);
-        var maxVelocityX = App.PENGUIN_MAX_SPEED * Math.cos(velocityAngle);
-        var maxVelocityY = App.PENGUIN_MAX_SPEED * Math.sin(velocityAngle);
+        var maxVelocityX = App.PENGUIN_MAXSPEED * Math.cos(velocityAngle);
+        var maxVelocityY = App.PENGUIN_MAXSPEED * Math.sin(velocityAngle);
         this.penguin.velocityX = (this.penguin.velocityX >= 0)
           ? Math.min(this.penguin.velocityX, maxVelocityX)
           : Math.max(this.penguin.velocityX, maxVelocityX);
@@ -253,18 +281,13 @@
       this.htmlCanvasContext.clearRect(0, 0, this.width, this.height);
       
       if (this.map) {
-        var DEBUG = "";
-        
         for (var y = 0; y < this.map.height; y ++) {
           for (var x = 0; x < this.map.width; x ++) {
-            var tile = this.map.tiles[y][x];
-            
-            DEBUG += tile + " ";
-            
+            var tile = this.map.tiles[y][x];            
             if (tile != Map.TILE_WATER) {
               if (tile > Map.TILE_WATER) {
                 var tileStrength = Math.min(Map.MAXIMUMTILESTRENGTH, Math.max(0, tile));
-                this.htmlCanvasContext.fillStyle = "rgba(255,255,255,"+(0.5 + tileStrength / Map.MAXIMUMTILESTRENGTH / 2)+")";
+                this.htmlCanvasContext.fillStyle = "rgba(255,255,255,"+((tileStrength / Map.MAXIMUMTILESTRENGTH)*0.8+0.2)+")";
               }
               else if (tile == Map.TILE_START || tile == Map.TILE_SNOW) {
                 this.htmlCanvasContext.fillStyle = App.COLOUR_TILE_SNOW;
@@ -275,14 +298,10 @@
               else if (tile == Map.TILE_CAMERA_DONE) {
                 this.htmlCanvasContext.fillStyle = App.COLOUR_TILE_CAMERA_DINE;
               }
-              this.htmlCanvasContext.fillRect(x * Map.TILESIZE, y * Map.TILESIZE, Map.TILESIZE - 1, Map.TILESIZE - 1);
+              this.htmlCanvasContext.fillRect(x * Map.TILESIZE, y * Map.TILESIZE, Map.TILESIZE, Map.TILESIZE);
             }
           }
-          
-          DEBUG += "\n";
         }
-        
-        //this.htmlConsole.innerHTML = DEBUG;
       }
       
       if (this.penguin) {
@@ -319,7 +338,6 @@
         this.maps[mapIndex].height,
         this.maps[mapIndex].rawData
       );
-      console.log(this.map);
       this.penguin = new Penguin(this.map.startingX, this.map.startingY);
       
       /*var tmp = this.map;
