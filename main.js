@@ -30,18 +30,20 @@
     App.COLOUR_TEXT = "rgba(255,255,255,1)";
     App.FONT_TEXT = "32px Lucida Console";
     App.FISH_RADIUS = 16;
+    App.FISH_WEIGHT = 1;
     App.PENGUIN_MAXSPEED = 8;
     App.STATE_START = "start-screen";
     App.STATE_READY = "get-ready";
     App.STATE_PLAY = "play";
     App.STATE_VICTORY = "victory-screen";
     App.STATE_DEFEAT = "defeat-screen";
+    App.STATE_ULTRAVICTORY = "ultra-victory-screen";
     App.DEFAULT_DECELERATION = 0.2;
     App.SPRITESIZE = 32;
     App.LARGESPRITESIZE = 64;
     App.USERACTION_NOTHING = 0;
     App.USERACTION_TOUCH = 1;
-    App.USERACTION_TOUCHEND = 2;    
+    App.USERACTION_TOUCHEND = 2;
     
     this.userAction = App.USERACTION_NOTHING;
     this.state = App.STATE_START;
@@ -55,7 +57,8 @@
       "screenStart": new ImageAsset("screen-start.png"),
       "screenReady": new ImageAsset("screen-ready.png"),
       "screenVictory": new ImageAsset("screen-victory.png"),
-      "screenDefeat": new ImageAsset("screen-defeat.png")
+      "screenDefeat": new ImageAsset("screen-defeat.png"),
+      "screenUltraVictory": new ImageAsset("screen-ultravictory.png")
     }
     
     this.map = undefined;
@@ -81,8 +84,8 @@
       ),
       new Map(
         20, 15,
-        "S                   " +
         "                    " +
+        "S11111X             " +
         "                    " +
         "                    " +
         "                    " +
@@ -99,8 +102,8 @@
       ),
       new Map(
         30, 20,
-        "S                             " +
         "                              " +
+        "S1111111XX                    " +
         "                              " +
         "                              " +
         "                              " +
@@ -173,19 +176,42 @@
           this.run_play();
           break;
         case App.STATE_READY:
-          this.htmlCanvasContext.clearRect(0, 0, this.width, this.height);
-          this.htmlCanvasContext.fillStyle = "rgba(128,128,128,1)";  //TEST
-          this.htmlCanvasContext.fillRect(0, 0, this.width, this.height);
+          console.log("READY: level " + this.currentMapIndex +" of "+ this.maps.length);
+          if (this.currentMapIndex < this.maps.length) {  //Load the level!
+            this.htmlCanvasContext.clearRect(0, 0, this.width, this.height);
+            this.htmlCanvasContext.drawImage(this.images.screenReady.img, 0, 0);
+            if (this.userAction == App.USERACTION_TOUCHEND) {
+              this.initialiseMap(this.currentMapIndex);
+              this.state = App.STATE_PLAY;
+            }
+          }
+          else {  //No more levels to load!
+            this.htmlCanvasContext.clearRect(0, 0, this.width, this.height);
+            this.state = App.STATE_ULTRAVICTORY;
+          }        
           break;
         case App.STATE_VICTORY:
           this.htmlCanvasContext.clearRect(0, 0, this.width, this.height);
-          this.htmlCanvasContext.fillStyle = "rgba(128,255,192,1)";  //TEST
-          this.htmlCanvasContext.fillRect(0, 0, this.width, this.height);
+          this.htmlCanvasContext.drawImage(this.images.screenVictory.img, 0, 0);
+          if (this.userAction == App.USERACTION_TOUCHEND) {
+            this.currentMapIndex ++;
+            this.state = App.STATE_READY;
+          }
           break;
         case App.STATE_DEFEAT:
           this.htmlCanvasContext.clearRect(0, 0, this.width, this.height);
-          this.htmlCanvasContext.fillStyle = "rgba(255,128,128,1)";  //TEST
-          this.htmlCanvasContext.fillRect(0, 0, this.width, this.height);
+          this.htmlCanvasContext.drawImage(this.images.screenDefeat.img, 0, 0);
+          if (this.userAction == App.USERACTION_TOUCHEND) {
+            this.state = App.STATE_READY;
+          }
+          break;
+        case App.STATE_ULTRAVICTORY:
+          this.htmlCanvasContext.clearRect(0, 0, this.width, this.height);
+          this.htmlCanvasContext.drawImage(this.images.screenUltraVictory.img, 0, 0);
+          if (this.userAction == App.USERACTION_TOUCHEND) {
+            this.currentMapIndex = 0;
+            this.state = App.STATE_START;
+          }
           break;
         default:
           break;
@@ -212,6 +238,7 @@
       
       this.htmlCanvasContext.clearRect(0, 0, this.width, this.height);
       if (allImagesLoaded) {
+        this.htmlCanvasContext.clearRect(0, 0, this.width, this.height);
         this.htmlCanvasContext.drawImage(this.images.screenStart.img, 0, 0);
       }
       else {
@@ -220,9 +247,11 @@
         this.htmlCanvasContext.fillText("Loading...", App.SPRITESIZE, App.SPRITESIZE * 2);
       }
       
-      //this.htmlCanvasContext.clearRect(0, 0, this.width, this.height);
-      this.initialiseMap(this.currentMapIndex);
-      this.state = App.STATE_PLAY;
+      if (this.userAction == App.USERACTION_TOUCHEND) {
+        //this.initialiseMap(this.currentMapIndex);
+        //this.state = App.STATE_PLAY;
+        this.state = App.STATE_READY;
+      }
     }.bind(this);
     
     this.run_play = function () {
@@ -260,7 +289,7 @@
       }
       //--------------------------------
       
-      //Step 2: Detect User Input
+      //Step 2: Respond To User Input
       //--------------------------------
       if (this.userAction == App.USERACTION_TOUCHEND) {          
         //Action: Touch Input Ended/Mouse Up => Drop a Fish (or cancel a fish)
@@ -305,7 +334,7 @@
           
           if (distX * distX + distY * distY <= this.penguin.radius * this.penguin.radius) {  //Touched the fish? Eat the fish!
             this.fish.shift();  //Or, this.fish = this.fish.splice(0, 1);
-            this.penguin.weight += Fish.WEIGHT_GAIN;
+            this.penguin.weight += App.FISH_WEIGHT;
             this.penguin.accelerationX = 0;
             this.penguin.accelerationY = 0;
           }
@@ -365,7 +394,7 @@
         "Y: " + this.inputStartY + " -> " + this.inputCurrentY + "<br/>" +
         this.inputTime + " frames<br/>" +
         (this.inputPressed ? "PRESSED!<br/>" : "---<br/>") + 
-        "Window pageOffset: " + window.pageXOffset + "," + window.pageYOffset;*/
+        "Window pageOffset: " + window.pageXOffset + "," + window.pageYOffset;  /**/
       //----------------
       
       //Step 4: Render
@@ -425,11 +454,24 @@
         
         var srcX = 0;
         var srcY = 0;
-        var offsetY = -24;
+        if (this.penguin.weight <= App.FISH_WEIGHT * 2) {
+          srcY = 0;
+        }
+        else if (this.penguin.weight <= App.FISH_WEIGHT * 4) {
+          srcY = App.LARGESPRITESIZE;
+        }
+        else if (this.penguin.weight <= App.FISH_WEIGHT * 6) {
+          srcY = App.LARGESPRITESIZE * 2;
+        }
+        else {
+          srcY = App.LARGESPRITESIZE * 3;
+        }        
+        
+        var offsetY =  - 24;
         
         this.htmlCanvasContext.drawImage(this.images.penguin.img,
-          srcX, srcY, App.SPRITESIZE, App.SPRITESIZE,
-          this.penguin.x - App.SPRITESIZE, this.penguin.y - App.SPRITESIZE + offsetY, App.SPRITESIZE*2, App.SPRITESIZE*2);
+          srcX, srcY, App.LARGESPRITESIZE, App.LARGESPRITESIZE,
+          Math.round(this.penguin.x - App.LARGESPRITESIZE/2), Math.round(this.penguin.y - App.LARGESPRITESIZE/2 + offsetY), App.LARGESPRITESIZE, App.LARGESPRITESIZE);
       }
       
       //--------------------------------
@@ -450,6 +492,7 @@
         this.maps[mapIndex].rawData
       );
       this.penguin = new Penguin(this.map.startingX, this.map.startingY);
+      this.fish = new Array();
     }.bind(this);
     
     //================================
@@ -570,14 +613,13 @@
     this.accelerationY = 0;
     this.velocityX = 0;
     this.velocityY = 0;
-    this.weight = 1;
+    this.weight = App.FISH_WEIGHT;  //Fish.WEIGHT_GAIN;
     this.radius = 16;
     this.animationScript = [0,1,0,2];
     this.animationCounter = 0;
   }
   
   function Fish(x, y) {
-    Fish.WEIGHT_GAIN = 1;
     this.x = x;
     this.y = y;
   }
