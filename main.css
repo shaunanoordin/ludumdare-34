@@ -32,7 +32,7 @@ body, html {
 }
 #console,
 #notes {
-  /*display: none;  /*Hide on production build.*/
+  display: none;  /*Hide on production build.*/
   white-space: pre;
 	max-width: 640px;
 	padding: 1em;

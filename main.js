@@ -1,4 +1,5 @@
 /*  Ludum Dare 34 - Fat Penguin
+ *
  *  A simple game about guiding a penguin to several markers by luring it with
  *  fish.
  *  - Click/tap to drop a fish.
@@ -8,6 +9,9 @@
  *  - The more fish the penguin eats, the fatter it gets. The fatter the penguin
  *    gets, the faster the ice beneath it cracks.
  *  - Get the penguins to each marker to complete the level.
+ *
+ * (Shaun A. Noordin, 20151215)
+ * (http://shaunanoordin.com)
 ********************************************************************************
  */
 "use strict";
@@ -61,7 +65,7 @@
     }
     
     this.map = undefined;
-    this.currentMapIndex = 1;
+    this.currentMapIndex = 0;
     this.maps = [
       new Map(
         30, 20,
