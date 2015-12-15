@@ -2,7 +2,6 @@
  *  A simple game about guiding a penguin to several markers by luring it with
  *  fish.
  *  - Click/tap to drop a fish.
- *  - Click/tap on a dropped fish to remove it.
  *  - The penguin will move towards the fish.
  *  - Ice is slippery and penguins can fall into the water. This is both tragic
  *    and hilarious.
@@ -62,65 +61,75 @@
     }
     
     this.map = undefined;
-    this.currentMapIndex = 0;
+    this.currentMapIndex = 1;
     this.maps = [
       new Map(
-        20, 15,
-        "                    " +
-        "     9999999999     " +
-        "   99999999999999   " +
-        "  9999999999999999  " +
-        "  99S9999999999X99  " +
-        " 999999999999999999 " +
-        " 9999999999999999999" +
-        " 9999999999999999999" +
-        " 9999999999999999999" +
-        " 9999999999999999999" +
-        "  99X9999999999X99  " +
-        "  9999999999999999  " +
-        "   99999999999999   " +
-        "     9999999999     " +
-        "          99999     "
-      ),
-      new Map(
-        20, 15,
-        "                    " +
-        "S11111X             " +
-        "                    " +
-        "                    " +
-        "                    " +
-        "                    " +
-        "                    " +
-        "                    " +
-        "                    " +
-        "                    " +
-        "                    " +
-        "                    " +
-        "                    " +
-        "                    " +
-        "                    "
+        30, 20,
+        "                              " +
+        "                              " +
+        "       1111111111111111       " +
+        "     11222222222222222211     " +
+        "    1223333333333333333222    " +
+        "    12X3399999999999933322    " +
+        "   123399999999999999999221   " +
+        "   1239S99999999999999X9321   " +
+        "   123999999999999999999321   " +
+        "   123999999999999999999321   " +
+        "   12399999999X999999999321   " +
+        "   123999999999999999999321   " +
+        "   123999999999999999999321   " +
+        "   123999999999999999933321   " +
+        "    1299999999999999X32221    " +
+        "    1223333333333333333221    " +
+        "     11X22222222222222111     " +
+        "       1111111111111111       " +
+        "                              " +
+        "                              "
       ),
       new Map(
         30, 20,
         "                              " +
-        "S1111111XX                    " +
+        " 2222233333333333333333333333 " +
+        " 2222233333333333333333333333 " +
+        " 22X2233333333333333333333X33 " +
+        " 2222232               433333 " +
+        " 2221111              4433333 " +
+        " 22211111            44444777 " +
+        " 222 11111          44444 777 " +
+        " 222  111199999999994444  777 " +
+        " 222   11199S99999X9444   777 " +
+        " 222   4449999999999666   777 " +
+        " 222  444499999999996666  777 " +
+        " 222 44444          66666 777 " +
+        " 22244444            66666777 " +
+        " 4444444              6655555 " +
+        " 444444                655555 " +
+        " 44X4455555555555555555555X55 " +
+        " 4444455555555555555555555555 " +
+        " 4444455555555555555555555555 " +
+        "                              "
+      ),
+      new Map(
+        30, 20,
         "                              " +
-        "                              " +
-        "                              " +
-        "                              " +
-        "                              " +
-        "                              " +
-        "                              " +
-        "                              " +
-        "                              " +
-        "                              " +
-        "                              " +
-        "                              " +
-        "                              " +
-        "                              " +
-        "                              " +
-        "                              " +
-        "                              " +
+        " 999 333333333333333333333333 " +
+        " 9S9 33333333333333333333333X " +
+        " 999 333333333333333333333333 " +
+        " 888 3333                     " +
+        " 888 3333      5555555        " +
+        " 888 3333      55555555       " +
+        " 888 3333      555555555      " +
+        " 888 3333      5555 55555     " +
+        " 777 3333      4555  55555    " +
+        " 777 3333      4444   55555   " +
+        " 777 3333      3444    55555  " +
+        " 777 33333333333434     5555  " +
+        " 777 33333333333344     5555  " +
+        " 777 33333333333444     5555  " +
+        " 777                    5555  " +
+        " 777666666666666666666666666  " +
+        " 777666666666666666666666666  " +
+        " 777666666666666666666666666  " +
         "                              "
       )
     ];
@@ -264,6 +273,7 @@
         //----------------
         var tileX = Math.floor(this.penguin.x / Map.TILESIZE);
         var tileY = Math.floor(this.penguin.y / Map.TILESIZE);
+        //is.htmlConsole.innerHTML = tileX+"/"+this.map.width+","+tileY+"/"+this.map.height+"="+this.map.tiles[tileY][tileX]+"\n";  //DEBUG
         if (tileX >= 0 && tileX < this.map.width && tileY > 0 && tileY < this.map.height) {
           if (this.map.tiles[tileY][tileX] == Map.TILE_WATER) {  //Water? SPLASH! You're defeated.
             this.state = App.STATE_DEFEAT;
@@ -298,6 +308,7 @@
         var inputY = this.inputCurrentY - this.inputHTMLOffsets.y;
         var insertNewFish = true;
         
+        /*  FEATURE REMOVED
         //Was the input in the vicinity of an existing fish? If so, remove that fish instead of inserting a new one.
         for (var i = 0; i < this.fish.length; i ++) {
           var distXSquared = this.fish[i].x - inputX;
@@ -311,6 +322,7 @@
             break;
           }
         }
+        */
         
         if (insertNewFish) {
           var newFish = new Fish(inputX, inputY);
